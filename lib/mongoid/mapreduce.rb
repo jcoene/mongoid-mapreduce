@@ -1,0 +1,6 @@
+require 'mongoid'
+require 'mongoid/mapreduce/base'
+require 'mongoid/mapreduce/document'
+require 'mongoid/mapreduce/reducer'
+require 'mongoid/mapreduce/results'
+require 'mongoid/mapreduce/version'
