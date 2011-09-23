@@ -20,18 +20,89 @@ module Mongoid
         @fields = {}
       end
 
+      # Obtain the field we are using for the map, if using an array values map.
+      #
+      # Returns true or false
+      def map_array_field
+        @fields.select { |k, v| v[:formula] == :array_values }.first
+      end
+
+      # Determines whether or not we are mapping from an array value
+      #
+      # Returns true or false
+      def map_from_array?
+        @fields.select { |k, v| v[:formula] == :array_values }.any?
+      end
+
       # Generates the JavaScript map function
+      #
+      # If we have any fields defined with a map function of :array_values, use that to map
+      # otherwise, use our aggregate map function.
       #
       # Returns String
       def map
-        "function() { emit(this.#{@map_key}, [1, #{@fields.collect{|k,v| "this.#{k}"}.join(", ")}]); }"
+        fn =  "function() { "
+        if map_from_array?
+          fn << map_array_values(map_array_field)
+        else
+          fn << map_aggregates
+        end
+        fn << "}"
+        fn
+      end
+
+      # Generate a map function from one unique map key and a number of aggregate sources
+      #
+      #
+      def map_aggregates
+        fields = @fields.select { |k, v| v[:formula] == :aggregate }
+        "emit (this.#{@map_key}, [#{[1, fields.collect{|k,v| "this.#{k}"}].flatten.join(", ")}]); "
+      end
+
+      # Generate a map function from one unique map key and a number of aggregate sources
+      #
+      #
+      def map_array_values(field)
+        "this.#{field[0].to_s}.forEach(function(value) { emit(value, 1); }); "
       end
 
       # Generates the JavaScript reduce function
       #
       # Returns String
       def reduce
-        "function(k, v) { var results = [0#{",0" * @fields.length}]; v.forEach(function(v){ [0,#{@fields.keys.collect.with_index{|k,i| i+1}.join(",")}].forEach(function(k){ results[k] += v[k] }) }); return results.toString(); }"
+        fn = "function(k, v) { "
+        if map_from_array?
+          fn << reduce_array_values
+        else
+          fn << reduce_aggregates
+        end
+        fn << "}"
+        fn
+      end
+
+      # Generates a reduce function for aggregate map
+      #
+      # Returns String
+      def reduce_aggregates
+        fields = @fields.select { |k, v| v[:formula] == :aggregate }
+        fn = ""
+        fn << "var results = [#{(["0"] * (fields.length + 1)).flatten.join(", ")}]; "
+        fn << "v.forEach(function(val) { "
+        fn <<   "for(var i=0; i<= #{fields.length}; i++) { "
+        fn <<     "results[i] += val[i] "
+        fn <<   "} "
+        fn << "}); "
+        fn << "return results.toString(); "
+      end
+
+      # Generates a reduce function for array values
+      #
+      # Returns String
+      def reduce_array_values
+        fn = ""
+        fn << "var result = 0; "
+        fn << "v.forEach(function(val) { result += val; }); "
+        fn << "return result; "
       end
 
       # Adds a field to the map/reduce operation
@@ -41,8 +112,20 @@ module Mongoid
       # Returns nothing.
       def field(sym, options={})
         options[:type] ||= Integer
-        options[:map] ||= :simple
+        options[:formula] ||= :aggregate
         @fields[sym.to_sym] = options
+      end
+
+      # Serialize an object to the specified class
+      #
+      # obj - Object to serialize
+      # klass - Class to prefer
+      #
+      # Returns serialized object or nil
+      def serialize(obj, klass)
+        return nil if obj.blank?
+        obj = obj.to_s =~ /(^[-+]?[0-9]+$)|(\.0+)$/ ? Integer(obj) : Float(obj)
+        Mongoid::Fields::Mappings.for(klass).allocate.serialize(obj)
       end
 
       # Runs the map/reduce operation and returns the result
@@ -54,10 +137,18 @@ module Mongoid
           res = @klass.collection.map_reduce(map, reduce, { query: @selector, out: "#map_reduce" } ).find.to_a
           return res.inject(Results.new) do |h, k|
             idx = k.values[0]
-            d = (k.values[1].is_a?(String) ? k.values[1].split(',') : k.values[1]).collect {|i| i.is_a?(Boolean) ? (i ? 1 : 0) : i.to_i }
-            doc = Document.new :_key_name => @map_key.to_sym, :_key_value => idx, @map_key.to_sym => idx, @count_field.to_sym => d[0]
-            @fields.keys.each_with_index do |k, i|
-              doc[k.to_sym] = d[i + 1]
+            d = (k.values[1].is_a?(String) ? k.values[1].split(',') : k.values[1])
+
+            if d.is_a?(Array)
+              doc = Document.new :_key_name => @map_key.to_s, :_key_value => idx, @map_key => idx, @count_field => d[0].to_i
+              @fields.each_with_index do |h, i|
+                doc[h[0].to_sym] = serialize(d[i + 1], h[1][:type])
+              end
+            else
+              f = map_array_field[0]
+              k = serialize(idx, map_array_field[1][:type])
+              v = d.to_i
+              doc = Document.new :_key_name => f, :_key_value => k, k.to_s => v, @count_field => v
             end
             h << doc
           end

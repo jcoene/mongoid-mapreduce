@@ -45,7 +45,14 @@ module Mongoid
       #
       # Returns Hash
       def to_hash
-        self.each.inject({}){|h, doc| h[doc._key_value] = doc.to_hash; h }
+        self.each.inject({}){|h, doc| h[doc._key_value.to_s] = doc.to_hash; h }
+      end
+
+      # Simplifies the Results to a Hash containing only a key and a single value (the count)
+      #
+      # Returns Hash
+      def counts
+        self.each.inject({}) {|h, doc| h[doc._key_value.to_s] = doc._count; h }
       end
 
     end

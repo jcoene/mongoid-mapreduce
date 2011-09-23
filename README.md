@@ -6,7 +6,13 @@ Mongoid MapReduce provides simple aggregation functions to your models using Mon
 
 ## How simple is simple?
 
-Very. You provide a Mongoid model, criteria, map key and a list of fields to be aggregated. It returns a list of results (one per unique map key value).
+Short answer: very!
+
+There are two map/reduce formulae:
+
+**Aggregates:** Provide a map key and a list of fields to be aggregated via addition.
+
+**Array List:** Provide an array field, the values will be individually aggregated via addition.
 
 ## Getting Started
 
@@ -28,6 +34,7 @@ class Employee
   field :awards, :type => Integer
   field :age, :type => Integer
   field :male, :type => Integer
+  field :rooms, :type => Array
 end
 ```
 
@@ -35,12 +42,12 @@ You can now use the *map_reduce* method on your model to aggregate data:
 
 ```ruby
 # Create a few example employees
-Employee.create :name => 'Alan', :division => 'Software', :age => 20, :awards => 5, :male => 1
-Employee.create :name => 'Bob', :division => 'Software', :age => 25, :awards => 4, :male => 1
-Employee.create :name => 'Chris', :division => 'Hardware', :age => 30, :awards => 3, :male => 1
-Employee.create :name => 'Darcy', :division => 'Sales', :age => 35, :awards => 3, :male => 0
+Employee.create :name => 'Alan', :division => 'Software', :age => 20, :awards => 5, :male => 1, :rooms => [1,2,3]
+Employee.create :name => 'Bob', :division => 'Software', :age => 25, :awards => 4, :male => 1, :rooms => [1,2,3]
+Employee.create :name => 'Chris', :division => 'Hardware', :age => 30, :awards => 3, :male => 1, :rooms => [4,5,6]
+Employee.create :name => 'Darcy', :division => 'Sales', :age => 35, :awards => 3, :male => 0, :rooms => [1,2,3,4,5,6]
 
-# Produces 3 records, one for each division.
+# Aggregate formula: produces 3 records, one for each division.
 divs = Employee.map_reduce(:division, :fields => [:age, :awards])
 divs.length               # => 3
 divs.find('Software').age # => 45
@@ -50,6 +57,15 @@ divs.last.age             # => 35
 divs.keys                 # => ['Hardware', 'Software', 'Sales']
 divs.has_key?('Sales')    # => true
 divs.to_hash              # => { "Software" => ..., "Hardware" => ..., "Sales" => ... }
+
+# Array Value formula: produces 6 records, one for each room.
+rooms = Employee.map_reduce do
+  field :rooms, :formula => :array_values
+end
+rooms.length          # => 6
+rooms.find(1)._count  # => 3
+rooms.counts["5"]     # => 2
+rooms.counts          # => { "1" => 3, "2" => 3, "3" => 3, "4" => 2, "5" => 2, "6" => 2 }
 ```
 
 You can also add Mongoid criteria before the operation:
@@ -59,6 +75,29 @@ You can also add Mongoid criteria before the operation:
 divs = Employee.where(:male => 1).map_reduce(:division, :fields => [:age, :awards])
 divs.length               # => 2
 divs.has_key?('Sales')    # => false
+```
+
+You choose to supply fields as arguments or in a block:
+
+```ruby
+# These are the same:
+Employee.where(:age.gt => 20).map_reduce(:division, :fields => [:age, :awards])
+Employee.where(:age.gt => 20).map_reduce(:division) do
+  field :age
+  field :awards
+end
+```
+
+Fields can be of any type supported by Mongoid serialization, and field type is specified in block configuration:
+
+```ruby
+divs = Employee.map_reduce(:division) do
+  field :age, :type => Integer
+  field :awards, :type => Float
+end
+
+divs.find('Software').age     # => 60
+divs.find('Software').awards  # => 9.0
 ```
 
 Additional meta fields are included in the results:
@@ -75,15 +114,6 @@ divs.find('Software')._count      # => 2
 
 # You can choose another name for the count field
 Employee.map_reduce(:division, :count_field => :num).find('Software').num  #=> 2
-```
-
-You can also choose to supply fields in a block:
-
-```ruby
-Employee.where(:age.gt => 20).map_reduce(:division) do
-  field :age
-  field :awards
-end
 ```
 
 ## Enhancements and Pull Requests

@@ -10,7 +10,7 @@ module Mongoid
       # Returns value of super
       def initialize(attrs)
         attrs.each do |k, v|
-          self[k.to_sym] = v
+          self[k] = v
         end
         super
       end
@@ -23,7 +23,9 @@ module Mongoid
       #
       # Returns value of supplied symbol/string if exists
       def method_missing(sym, *args, &block)
-        if self.has_key?(sym.to_sym)
+        if self.has_key?(sym)
+          return self[sym]
+        elsif self.has_key?(sym.to_sym)
           return self[sym.to_sym]
         elsif self.has_key?(sym.to_s)
           return self[sym.to_s]
