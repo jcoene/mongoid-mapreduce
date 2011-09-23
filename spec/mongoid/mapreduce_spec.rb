@@ -46,6 +46,13 @@ describe Mongoid::MapReduce do
         r.last.keys.should include :awards
       end
 
+      it 'can be integers' do
+        r = Employee.map_reduce do
+          field :age, type: Integer
+        end
+        r.first.age.class.should eql Fixnum
+      end
+
     end
 
     describe 'other options' do

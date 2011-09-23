@@ -18,7 +18,9 @@ module Mongoid
         end
 
         if options.key?(:fields)
-          reducer.fields = options[:fields].collect {|f| f.to_sym }
+          options[:fields].each do |f|
+            reducer.field f.to_sym
+          end
         end
 
         reducer.instance_eval(&block) if block.present?
