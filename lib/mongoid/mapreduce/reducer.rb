@@ -89,7 +89,7 @@ module Mongoid
         fn << "var results = [#{(["0"] * (fields.length + 1)).flatten.join(", ")}]; "
         fn << "v.forEach(function(val) { "
         fn <<   "for(var i=0; i<= #{fields.length}; i++) { "
-        fn <<     "results[i] += val[i] "
+        fn <<     "results[i] += (typeof val[i] == Boolean) ? (val[i] ? 1 : 0) : val[i] "
         fn <<   "} "
         fn << "}); "
         fn << "return results.toString(); "
@@ -124,6 +124,7 @@ module Mongoid
       # Returns serialized object or nil
       def serialize(obj, klass)
         return nil if obj.blank?
+        obj = obj.is_a?(Boolean) ? (obj ? 1 : 0) : obj
         obj = obj.to_s =~ /(^[-+]?[0-9]+$)|(\.0+)$/ ? Integer(obj) : Float(obj)
         Mongoid::Fields::Mappings.for(klass).allocate.serialize(obj)
       end

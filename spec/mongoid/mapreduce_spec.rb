@@ -6,9 +6,9 @@ describe Mongoid::MapReduce do
     @aapl = Company.create :name => 'Apple', :market => 'Technology', :quote => 401.82, :shares => 972_090_000
     @msft = Company.create :name => 'Microsoft', :market => 'Technology', :quote => 25.06, :shares => 8_380_000_000
     @sbux = Company.create :name => 'Starbucks', :market => 'Food', :quote => 38.60, :shares => 746_010_000
-    Employee.create :name => 'Alan', :division => 'Software', :age => 30, :awards => 5, :rooms => [1,2], :company => @aapl
-    Employee.create :name => 'Bob', :division => 'Software', :age => 30, :awards => 4, :rooms => [3,4,5], :company => @aapl
-    Employee.create :name => 'Chris', :division => 'Hardware', :age => 30, :awards => 3, :rooms => [1,2,3,4], :company => @aapl
+    Employee.create :name => 'Alan', :division => 'Software', :age => 30, :awards => 5, :rooms => [1,2], :active => true, :company => @aapl
+    Employee.create :name => 'Bob', :division => 'Software', :age => 30, :awards => 4, :rooms => [3,4,5], :active => true, :company => @aapl
+    Employee.create :name => 'Chris', :division => 'Hardware', :age => 30, :awards => 3, :rooms => [1,2,3,4], :active => false, :company => @aapl
   end
 
   describe 'DSL' do
@@ -162,6 +162,16 @@ describe Mongoid::MapReduce do
       r.length.should eql 2 # Hardware and Software
       r.find('Hardware').age.should eql 30
       r.find('Software').awards.should eql 9
+    end
+
+    it 'can process boolean values' do
+      r = Employee.map_reduce(:division) do
+        field :age, :type => Integer
+        field :active, :type => Integer
+      end
+      p r
+      r.find('Software').active.should eql 2
+      r.find('Hardware').active.should eql nil
     end
 
   end
