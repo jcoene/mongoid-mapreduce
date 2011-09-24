@@ -59,9 +59,7 @@ divs.has_key?('Sales')    # => true
 divs.to_hash              # => { "Software" => ..., "Hardware" => ..., "Sales" => ... }
 
 # Array Value formula: produces 6 records, one for each room.
-rooms = Employee.map_reduce do
-  field :rooms, :formula => :array_values
-end
+rooms = Employee.map_reduce(:rooms, :formula => :array_values)
 rooms.length          # => 6
 rooms.find(1)._count  # => 3
 rooms.counts["5"]     # => 2

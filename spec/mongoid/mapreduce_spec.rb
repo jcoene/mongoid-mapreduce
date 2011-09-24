@@ -74,23 +74,46 @@ describe Mongoid::MapReduce do
         r.find('Software').age.should eql "60"
       end
 
-      it 'can be sourced from an array' do
-        r = Employee.map_reduce do
-          field :rooms, :type => Integer, :formula => :array_values
-        end
+    end
+
+    describe 'aggregate fields formula' do
+
+      it 'count field can be renamed' do
+        r = Employee.map_reduce(:_id, :formula => :aggregate_fields, :count_field => :g)
+        r.first.keys.should include :g
+        r.first.keys.should_not include :_count
+      end
+
+    end
+
+    describe 'array values formula' do
+
+      it 'returns the expected results' do
+        r = Employee.map_reduce(:rooms, :formula => :array_values)
         r.length.should eql 5
         r.find(1)._count.should eql 2
         r.counts["5"].should eql 1
       end
 
-    end
-
-    describe 'other options' do
+      it 'can take a custom count type' do
+        r = Employee.map_reduce(:rooms, :formula => :array_values, :count_type => Float)
+        r.length.should eql 5
+        r.find(1)._count.should eql 2.0
+        r.find(5)._count.should eql 1.0
+      end
 
       it 'count field can be renamed' do
-        r = Employee.map_reduce(:_id, count_field: :g)
+        r = Employee.map_reduce(:rooms, :formula => :array_values, :count_field => :g)
         r.first.keys.should include :g
         r.first.keys.should_not include :_count
+        r.find(5).g.should eql 1
+      end
+
+      it 'can be presented with count' do
+        h = Employee.map_reduce(:rooms, :formula => :array_values).counts
+        h["1"].should eql 2
+        h["5"].should eql 1
+
       end
 
     end
@@ -169,7 +192,6 @@ describe Mongoid::MapReduce do
         field :age, :type => Integer
         field :active, :type => Integer
       end
-      p r
       r.find('Software').active.should eql 2
       r.find('Hardware').active.should eql nil
     end
