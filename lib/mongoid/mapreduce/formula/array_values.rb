@@ -12,8 +12,8 @@ module Mongoid
           options[:count_type] ||= Integer
           options[:count_field] ||= :_count
 
-          if fields.length > 1
-            raise "Error: The Array Values formula can only take 1 field"
+          if fields.any?
+            raise "Error: The Array Values formula does not take any fields. Please see documentation."
           end
 
           @field_name = options[:map_key]

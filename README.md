@@ -38,7 +38,7 @@ class Employee
 end
 ```
 
-You can now use the *map_reduce* method on your model to aggregate data:
+You can now use the *map_reduce* method on your model to aggregate data using your choice of aggregation formula.
 
 ```ruby
 # Create a few example employees
@@ -47,7 +47,7 @@ Employee.create :name => 'Bob', :division => 'Software', :age => 25, :awards => 
 Employee.create :name => 'Chris', :division => 'Hardware', :age => 30, :awards => 3, :male => 1, :rooms => [4,5,6]
 Employee.create :name => 'Darcy', :division => 'Sales', :age => 35, :awards => 3, :male => 0, :rooms => [1,2,3,4,5,6]
 
-# Aggregate formula: produces 3 records, one for each division.
+# Aggregate formula (the default): produces 3 records, one for each division.
 divs = Employee.map_reduce(:division, :fields => [:age, :awards])
 divs.length               # => 3
 divs.find('Software').age # => 45
@@ -58,7 +58,7 @@ divs.keys                 # => ['Hardware', 'Software', 'Sales']
 divs.has_key?('Sales')    # => true
 divs.to_hash              # => { "Software" => ..., "Hardware" => ..., "Sales" => ... }
 
-# Array Value formula: produces 6 records, one for each room.
+# Array Value formula: produces 6 records, one for each room. Does not take any fields.
 rooms = Employee.map_reduce(:rooms, :formula => :array_values)
 rooms.length          # => 6
 rooms.find(1)._count  # => 3
