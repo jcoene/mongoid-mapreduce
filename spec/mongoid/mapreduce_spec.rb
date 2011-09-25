@@ -76,7 +76,32 @@ describe Mongoid::MapReduce do
 
     end
 
-    describe 'aggregate fields formula' do
+  end
+
+  describe 'formulas' do
+
+    describe 'aggregate fields' do
+
+      it 'maps on _id by default' do
+        r = Employee.map_reduce
+        r.first._key_name.to_s.should eql '_id'
+      end
+
+      it 'can be mapped on another key' do
+        r = Employee.map_reduce(:division, :fields => [:age, :awards])
+        r.length.should eql 2 # Hardware and Software
+        r.find('Hardware').age.should eql 30
+        r.find('Software').awards.should eql 9
+      end
+
+      it 'can process boolean values' do
+        r = Employee.map_reduce(:division) do
+          field :age, :type => Integer
+          field :active, :type => Integer
+        end
+        r.find('Software').active.should eql 2
+        r.find('Hardware').active.should eql nil
+      end
 
       it 'count field can be renamed' do
         r = Employee.map_reduce(:_id, :formula => :aggregate_fields, :count_field => :g)
@@ -86,7 +111,11 @@ describe Mongoid::MapReduce do
 
     end
 
-    describe 'array values formula' do
+    describe 'array values' do
+
+      it 'does not take any fields' do
+        Employee.map_reduce(:rooms, :formula => :array_values).should raise_error
+      end
 
       it 'returns the expected results' do
         r = Employee.map_reduce(:rooms, :formula => :array_values)
@@ -113,7 +142,6 @@ describe Mongoid::MapReduce do
         h = Employee.map_reduce(:rooms, :formula => :array_values).counts
         h["1"].should eql 2
         h["5"].should eql 1
-
       end
 
     end
@@ -156,7 +184,6 @@ describe Mongoid::MapReduce do
   end
 
   describe 'documents' do
-
     it 'always contain a map key name and value, key => value and count' do
       r = Employee.map_reduce(:division)
       r.first.keys.should include :_key_name
@@ -170,32 +197,6 @@ describe Mongoid::MapReduce do
       r = Employee.map_reduce
       r.first.to_hash.should be_an_instance_of(Hash)
     end
-
-  end
-
-  describe 'map-reduce' do
-
-    it 'maps on _id by default' do
-      r = Employee.map_reduce
-      r.first._key_name.to_s.should eql '_id'
-    end
-
-    it 'can be mapped on another key' do
-      r = Employee.map_reduce(:division, :fields => [:age, :awards])
-      r.length.should eql 2 # Hardware and Software
-      r.find('Hardware').age.should eql 30
-      r.find('Software').awards.should eql 9
-    end
-
-    it 'can process boolean values' do
-      r = Employee.map_reduce(:division) do
-        field :age, :type => Integer
-        field :active, :type => Integer
-      end
-      r.find('Software').active.should eql 2
-      r.find('Hardware').active.should eql nil
-    end
-
   end
 
 end
