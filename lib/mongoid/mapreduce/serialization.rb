@@ -11,7 +11,9 @@ module Mongoid
       def serialize(obj, klass)
         return nil if obj.blank?
         obj = obj.is_a?(Boolean) ? (obj ? 1 : 0) : obj
-        obj = obj.to_s =~ /(^[-+]?[0-9]+$)|(\.0+)$/ ? Integer(obj) : Float(obj)
+        
+        obj = obj.to_s =~ /(^[-+]?[0-9]+$)|(\.0+)$/ ? obj.to_i : obj.to_f
+
         Mongoid::Fields::Mappings.for(klass).allocate.serialize(obj)
       end
 
