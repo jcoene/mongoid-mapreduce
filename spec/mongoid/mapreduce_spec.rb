@@ -50,24 +50,24 @@ describe Mongoid::MapReduce do
 
       it 'can be integers' do
         r = Employee.map_reduce do
-          field :age, type: Integer
+          field :age, :type => Integer
         end
         r.first.age.should be_an_instance_of(Fixnum)
       end
 
       it 'can be floats' do
         r = Company.map_reduce(:market) do
-          field :quote, type: Float
-          field :shares, type: Integer
+          field :quote, :type =>  Float
+          field :shares, :type =>  Integer
         end
         r.first.quote.should be_an_instance_of(Float)
-        r.find('Technology').quote.should eql (@aapl.quote + @msft.quote)
+        r.find('Technology').quote.should eql(@aapl.quote + @msft.quote)
         r.find('Food').quote.should eql @sbux.quote
       end
 
       it 'can be strings' do
         r = Employee.map_reduce(:division) do
-          field :age, type: String
+          field :age, :type =>  String
         end
         r.first.age.should be_an_instance_of(String)
         r.find('Hardware').age.should eql "30"
