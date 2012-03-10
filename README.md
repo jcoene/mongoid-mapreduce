@@ -120,8 +120,9 @@ This mucks up the returned hash's keys and so the hash keys can be overwritten b
 Please note - the javascript you add must be enclosed in parenthesis.
 ```ruby
 @docs = DigiDocument.search(:document_type => "receipt")
-@docs.map_reduce("(this.categories_array.join(',') + '').length == 0 ? 'none' : this.categories_array.join(',') ", 
-                   :fields => [:"receipt ? this.receipt.total : 0"], :map_key_as => "category", :count_field_as => "total")
+@docs.map_reduce("(this.categories_array.join(',') + '').length == 0 ? 'none' : this.categories_array.join(',') ", :map_key_as => "category") do
+                   field :"receipt ? this.receipt.total : 0", :as => "total"
+end
 ```
 
 ## Enhancements and Pull Requests
