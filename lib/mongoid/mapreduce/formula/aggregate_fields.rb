@@ -10,9 +10,11 @@ module Mongoid
         def initialize(fields, options={})
           options[:map_key] ||= :_id
           options[:count_field] ||= :_count
-
+          
           @map_key = options[:map_key]
+          @map_key_as = options[:map_key_as] || @map_key
           @count_field = options[:count_field]
+          @count_field_as = options[:count_field_as] || @count_field
           @fields = fields
         end
 
@@ -22,8 +24,14 @@ module Mongoid
         # Returns String
         def map
           fn =  "function() { "
-          fn <<   "emit (this.#{@map_key}, [#{[1, @fields.collect{|k,v| "this.#{k}"}].flatten.join(", ")}]); "
+          if @map_key.first == "("
+            fn << "emit (#{@map_key}, [#{[1, @fields.collect{|k,v| "this.#{k}"}].flatten.join(", ")}]); "
+          else
+            fn <<   "emit (this.#{@map_key}, [#{[1, @fields.collect{|k,v| "this.#{k}"}].flatten.join(", ")}]); "
+          end
           fn << "}"
+          puts fn
+          fn
         end
 
         # Generates a reduce function
@@ -40,6 +48,8 @@ module Mongoid
           fn <<   "}); "
           fn <<   "return results.toString(); "
           fn << "}"
+          puts fn
+          fn
         end
 
         # Process the results of a given collection
@@ -51,7 +61,7 @@ module Mongoid
           return collection.inject(Results.new) do |h, k|
             key = k.values[0]
             vals = (k.values[1].is_a?(String) ? k.values[1].split(',') : k.values[1])
-            doc = Document.new :_key_name => @map_key.to_s, :_key_value => key, @map_key => key, @count_field => vals[0].to_i
+            doc = Document.new :_key_name => @map_key_as.to_s, :_key_value => key, @map_key_as => key, @count_field_as => vals[0].to_i
             @fields.each_with_index do |f, i|
               doc[f[0].to_sym] = serialize(vals[i + 1], f[1][:type])
             end
