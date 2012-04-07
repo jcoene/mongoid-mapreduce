@@ -56,7 +56,7 @@ module Mongoid
           return collection.inject(Results.new) do |h, k|
             key = k.values[0]
             vals = (k.values[1].is_a?(String) ? k.values[1].split(',') : k.values[1])
-            doc = Document.new :_key_name => @map_key_as.to_s, :_key_value => key, @map_key => key, @count_field => vals[0].to_i
+            doc = Document.new :_key_name => @map_key_as.to_s, :_key_value => key, @map_key_as => key, @count_field => vals[0].to_i
             @fields.each_with_index do |f, i|
               doc[f[1][:as].to_sym] = serialize(vals[i + 1], f[1][:type])
             end
