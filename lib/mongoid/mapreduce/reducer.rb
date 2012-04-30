@@ -56,6 +56,7 @@ module Mongoid
       # Returns nothing.
       def field(sym, options={})
         options[:type] ||= Integer
+        options[:as] ||= sym
         @fields[sym.to_sym] = options
       end
 

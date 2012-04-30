@@ -114,6 +114,18 @@ divs.find('Software')._count      # => 2
 Employee.map_reduce(:division, :count_field => :num).find('Software').num  #=> 2
 ```
 
+You can also use javascript as the key if you want some more control over what is emitted by the map function i.e.
+This mucks up the returned hash's keys and so the hash keys can be overwritten by passing ```:map_key_as => :category``` and ```:count_field_as => :total``` to specify the desired keys i.e.
+
+Please note - the javascript you add must be enclosed in parenthesis.
+
+```ruby
+@docs = DigiDocument.search(:document_type => "receipt")
+@docs.map_reduce("(this.categories_array.join(',') + '').length == 0 ? 'none' : this.categories_array.join(',') ", :map_key_as => "category") do
+                   field :"receipt ? this.receipt.total : 0", :as => "total"
+end
+```
+
 ## Enhancements and Pull Requests
 
 If you find the project useful but it doesn't meet all of your needs, feel free to fork it and send a pull request.
