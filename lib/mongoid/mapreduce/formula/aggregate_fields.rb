@@ -22,7 +22,7 @@ module Mongoid
         # Returns String
         def map
           fn =  "function() { "
-          fn <<   "emit (this.#{@map_key}, [#{[1, @fields.collect{|k,v| "this.#{k}"}].flatten.join(", ")}]); "
+          fn <<   "emit (this.#{@map_key}, [#{[1, @fields.collect{|k,v| v[:expression] ? v[:expression] : "this.#{k}"}].flatten.join(", ")}]); "
           fn << "}"
         end
 
