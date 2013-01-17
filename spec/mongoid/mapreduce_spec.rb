@@ -109,6 +109,15 @@ describe Mongoid::MapReduce do
         r.first.keys.should_not include :_count
       end
 
+      it 'can process expressions' do
+        r = Employee.map_reduce(:division) do
+          field :age, :type => Integer, :expression => 'this.age'
+          field :awards, :type => Integer, :expression => 'this.awards'
+        end
+        r.find('Hardware').age.should eql 30
+        r.find('Software').awards.should eql 9
+      end
+
     end
 
     describe 'array values' do
